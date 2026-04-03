@@ -12,7 +12,7 @@
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;600;700&family=Playfair+Display:ital,wght@0,700;1,700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   
   <style>
     /* ===================================
@@ -38,7 +38,177 @@
       
       --transition-speed: 0.3s;
       --border-radius: 8px;
+
+      /* Customization Panel Variables */
+      --panel-bg: rgba(255, 255, 255, 0.9);
+      --panel-border: #e0e0e0;
+      --panel-width: 320px;
     }
+
+    /* Customization Panel Styles */
+    #edit-toggle {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: var(--accent-color);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      z-index: 2000;
+      font-size: 1.5rem;
+      transition: transform 0.3s ease, background-color 0.3s ease;
+    }
+
+    #edit-toggle:hover {
+      transform: scale(1.1);
+    }
+
+    #custom-panel {
+      position: fixed;
+      top: 0;
+      right: calc(-1 * var(--panel-width));
+      width: var(--panel-width);
+      height: 100vh;
+      background: var(--panel-bg);
+      backdrop-filter: blur(15px);
+      border-left: 1px solid var(--panel-border);
+      z-index: 1500;
+      padding: 2rem;
+      overflow-y: auto;
+      transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.05);
+    }
+
+    #custom-panel.active {
+      right: 0;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    .panel-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .close-panel {
+      cursor: pointer;
+      font-size: 1.25rem;
+      color: var(--dark-gray);
+    }
+
+    .control-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .control-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+      color: var(--dark-gray);
+    }
+
+    .control-input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--panel-border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 1rem;
+      background: white;
+    }
+
+    .color-picker-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .color-input-wrapper {
+      position: relative;
+      height: 40px;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--panel-border);
+    }
+
+    .color-input-wrapper input[type="color"] {
+      position: absolute;
+      top: -5px;
+      left: -5px;
+      width: calc(100% + 10px);
+      height: calc(100% + 10px);
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-save {
+      width: 100%;
+      padding: 1rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: opacity 0.2s;
+    }
+
+    .btn-save:hover {
+      opacity: 0.9;
+    }
+
+    .btn-export {
+      width: 100%;
+      padding: 0.75rem;
+      background-color: transparent;
+      color: var(--primary-color);
+      border: 2px solid var(--primary-color);
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+
+    /* Contenteditable Highlighting */
+    [contenteditable="true"]:hover {
+      box-shadow: 0 0 0 2px var(--accent-color);
+      cursor: text;
+    }
+
+    #edit-mode-indicator {
+      position: fixed;
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent-color);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      z-index: 1400;
+      display: none;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
 
     * {
       margin: 0;
@@ -1102,6 +1272,183 @@
       navScrollThreshold: 100,
     };
 
+    // --- Customization Logic ---
+    const Customizer = {
+      settings: {
+        name: 'Your Name',
+        role: 'Full Stack Developer',
+        primary: '#000000',
+        secondary: '#ffffff',
+        accent: '#ff6b6b',
+        font: 'Space Grotesk'
+      },
+
+      init() {
+        this.loadSettings();
+        this.setupEventListeners();
+        this.applySettings();
+      },
+
+      loadSettings() {
+        const saved = localStorage.getItem('portfolio_settings');
+        if (saved) {
+          this.settings = { ...this.settings, ...JSON.parse(saved) };
+          // Also load custom content if any
+          const content = localStorage.getItem('portfolio_content');
+          if (content) {
+            this.applySavedContent(JSON.parse(content));
+          }
+        }
+      },
+
+      saveSettings() {
+        localStorage.setItem('portfolio_settings', JSON.stringify(this.settings));
+        
+        // Save text content as well
+        const content = {
+          name: document.querySelector('.logo').innerText,
+          heroTitle: document.querySelector('.hero-title').innerHTML,
+          heroSubtitle: document.querySelector('.hero-subtitle').innerText,
+          aboutText1: document.querySelectorAll('.about-text p')[0].innerHTML,
+          aboutText2: document.querySelectorAll('.about-text p')[1].innerHTML,
+        };
+        localStorage.setItem('portfolio_content', JSON.stringify(content));
+        
+        alert('Settings saved successfully!');
+      },
+
+      setupEventListeners() {
+        const toggle = document.getElementById('edit-toggle');
+        const panel = document.getElementById('custom-panel');
+        const close = document.querySelector('.close-panel');
+        
+        if (toggle) {
+          toggle.addEventListener('click', () => {
+            panel.classList.toggle('active');
+            this.toggleEditMode(panel.classList.contains('active'));
+          });
+        }
+
+        if (close) {
+          close.addEventListener('click', () => {
+            panel.classList.remove('active');
+            this.toggleEditMode(false);
+          });
+        }
+
+        // Live color updates
+        document.getElementById('primary-color').addEventListener('input', (e) => {
+          this.settings.primary = e.target.value;
+          document.documentElement.style.setProperty('--primary-color', e.target.value);
+        });
+
+        document.getElementById('accent-color').addEventListener('input', (e) => {
+          this.settings.accent = e.target.value;
+          document.documentElement.style.setProperty('--accent-color', e.target.value);
+        });
+
+        // Name input
+        document.getElementById('name-input').addEventListener('input', (e) => {
+          this.settings.name = e.target.value;
+          document.querySelector('.logo').innerText = e.target.value;
+          document.querySelector('.hero-subtitle').innerText = e.target.value.toUpperCase();
+          const footerBold = document.querySelector('footer strong');
+          if (footerBold) footerBold.innerText = e.target.value;
+        });
+
+        // Font selection
+        document.getElementById('font-select').addEventListener('change', (e) => {
+          this.settings.font = e.target.value;
+          this.applyFont(e.target.value);
+        });
+
+        // Export button
+        document.querySelector('.btn-export').addEventListener('click', () => {
+          this.exportSettings();
+        });
+
+        // Save button
+        document.querySelector('.btn-save').addEventListener('click', () => {
+          this.saveSettings();
+        });
+      },
+
+      applySettings() {
+        document.documentElement.style.setProperty('--primary-color', this.settings.primary);
+        document.documentElement.style.setProperty('--accent-color', this.settings.accent);
+        
+        const primaryInput = document.getElementById('primary-color');
+        const accentInput = document.getElementById('accent-color');
+        const nameInput = document.getElementById('name-input');
+        const fontSelect = document.getElementById('font-select');
+
+        if (primaryInput) primaryInput.value = this.settings.primary;
+        if (accentInput) accentInput.value = this.settings.accent;
+        if (nameInput) nameInput.value = this.settings.name;
+        if (fontSelect) fontSelect.value = this.settings.font;
+        
+        this.applyFont(this.settings.font);
+        
+        document.querySelector('.logo').innerText = this.settings.name;
+        document.querySelector('.hero-subtitle').innerText = this.settings.name.toUpperCase();
+      },
+
+      applySavedContent(content) {
+        if (content.name) document.querySelector('.logo').innerText = content.name;
+        if (content.heroTitle) document.querySelector('.hero-title').innerHTML = content.heroTitle;
+        if (content.heroSubtitle) document.querySelector('.hero-subtitle').innerText = content.heroSubtitle;
+        
+        const aboutPs = document.querySelectorAll('.about-text p');
+        if (content.aboutText1 && aboutPs[0]) aboutPs[0].innerHTML = content.aboutText1;
+        if (content.aboutText2 && aboutPs[1]) aboutPs[1].innerHTML = content.aboutText2;
+      },
+
+      applyFont(font) {
+        let fontValue = '';
+        switch(font) {
+          case 'Inter': fontValue = '"Inter", sans-serif'; break;
+          case 'Playfair Display': fontValue = '"Playfair Display", serif'; break;
+          case 'Poppins': fontValue = '"Poppins", sans-serif'; break;
+          default: fontValue = '"Space Grotesk", sans-serif';
+        }
+        document.documentElement.style.setProperty('--font-primary', fontValue);
+      },
+
+      toggleEditMode(active) {
+        const indicator = document.getElementById('edit-mode-indicator');
+        if (indicator) indicator.style.display = active ? 'block' : 'none';
+        
+        const editableElements = [
+          '.hero-title', '.hero-subtitle', '.section-title', 
+          '.about-text p', '.skill-title', '.skill-description',
+          '.timeline-role', '.timeline-company', '.timeline-description',
+          '.project-title', '.project-description', '.testimonial-text'
+        ];
+        
+        document.querySelectorAll(editableElements.join(',')).forEach(el => {
+          el.contentEditable = active;
+        });
+      },
+
+      exportSettings() {
+        const cssVars = `/* Copy these to your :root in <style> */
+:root {
+  --primary-color: ${this.settings.primary};
+  --accent-color: ${this.settings.accent};
+  --font-primary: ${getComputedStyle(document.documentElement).getPropertyValue('--font-primary')};
+}`;
+        
+        const textArea = document.createElement('textarea');
+        textArea.value = cssVars;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        alert('CSS variables copied to clipboard! You can replace them in your code.');
+      }
+    };
+
     // Loading Screen
     function initLoadingScreen() {
       const loadingScreen = document.getElementById('loading-screen');
@@ -1125,6 +1472,7 @@
         }
       }, CONFIG.loadingDuration / 10);
     }
+
 
     // Navigation
     function initNavigation() {
@@ -1293,8 +1641,60 @@
       initScrollAnimations();
       initTestimonials();
       initSkillCards();
+      
+      // Initialize Customizer
+      Customizer.init();
     });
   </script>
 
+  <!-- Customization Panel UI -->
+  <div id="edit-mode-indicator">✨ Edit Mode Active - Click any text to edit</div>
+
+  <div id="edit-toggle" title="Toggle Design Panel">
+    <span>🎨</span>
+  </div>
+
+  <div id="custom-panel">
+    <div class="panel-header">
+      <h3 class="panel-title">Design Panel</h3>
+      <span class="close-panel">&times;</span>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">Your Name</label>
+      <input type="text" id="name-input" class="control-input" placeholder="Enter your name">
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">Brand Colors</label>
+      <div class="color-picker-grid">
+        <div class="color-input-wrapper" title="Primary Color">
+          <input type="color" id="primary-color" value="#000000">
+        </div>
+        <div class="color-input-wrapper" title="Accent Color">
+          <input type="color" id="accent-color" value="#ff6b6b">
+        </div>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">Typography</label>
+      <select id="font-select" class="control-input">
+        <option value="Space Grotesk">Space Grotesk (Modern)</option>
+        <option value="Inter">Inter (Clean)</option>
+        <option value="Playfair Display">Playfair Display (Elegant)</option>
+        <option value="Poppins">Poppins (Friendly)</option>
+      </select>
+    </div>
+
+    <button class="btn-save">Save Changes Locally</button>
+    <button class="btn-export">Copy CSS Variables</button>
+    
+    <p style="font-size: 0.75rem; color: var(--dark-gray); margin-top: 1.5rem; line-height: 1.4;">
+      <strong>Note:</strong> Changes are saved to your browser. Use "Copy CSS Variables" to make them permanent in your code.
+    </p>
+  </div>
+
 </body>
 </html>
+
